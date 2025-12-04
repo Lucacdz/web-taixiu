@@ -7,12 +7,10 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>🎲 Web Tài Xỉu Realtime</h1>
-
 <!-- Nhạc nền -->
-<audio autoplay loop>
-    <source src="https://files.catbox.moe/sbvh44.mp3" type="audio/mpeg">
-</audio>
+<audio src="https://files.catbox.moe/sbvh44.mp3" autoplay loop></audio>
+
+<h1>🎲 Web Tài Xỉu Realtime</h1>
 
 <div id="auth">
     <h3>Đăng ký</h3>
@@ -63,6 +61,7 @@
 const socket = io();
 let username = "";
 
+// ===== Đăng ký & đăng nhập =====
 function register(){
     fetch("/register",{
         method:"POST",
@@ -89,6 +88,7 @@ function login(){
     });
 }
 
+// ===== Đặt cược =====
 function placeBet(type){
     let amount = parseInt(document.getElementById("bet_amount").value);
     let auto = document.getElementById("auto_bet").checked;
@@ -97,10 +97,6 @@ function placeBet(type){
 
 socket.on("update_player", player => {
     document.getElementById("money").innerText = player.money;
-});
-
-socket.on("bet_update", data=>{
-    console.log("Cược hiện tại:", data);
 });
 
 socket.on("bet_locked", ()=>{
@@ -112,6 +108,7 @@ socket.on("bet_error", msg=>{
     alert(msg);
 });
 
+// ===== Dice emoji & kết quả =====
 const diceEmoji = ["","⚀","⚁","⚂","⚃","⚄","⚅"];
 
 socket.on("round_result", data=>{
@@ -139,7 +136,7 @@ socket.on("round_result", data=>{
     showNext();
 });
 
-// Timer
+// ===== Timer =====
 socket.on("timer_update", (time, inBreak)=>{
     const timerEl = document.getElementById("timer");
     timerEl.innerText = time + " giây";
@@ -157,7 +154,7 @@ socket.on("new_round", ()=>{
     alert("Vòng mới bắt đầu! Chuẩn bị đặt cược!");
 });
 
-// Chat
+// ===== Chat realtime =====
 function sendChat(){
     let msg = document.getElementById("chat_input").value;
     if(msg.trim() === "") return;
@@ -171,7 +168,7 @@ socket.on("chat_history", history=>{
     box.scrollTop = box.scrollHeight;
 });
 
-// Lịch sử vòng
+// ===== Lịch sử vòng =====
 socket.on("round_history", history=>{
     const box = document.getElementById("history_box");
     box.innerHTML = history.map((r,i)=>{
@@ -181,7 +178,7 @@ socket.on("round_history", history=>{
     box.scrollTop = box.scrollHeight;
 });
 
-// Top win
+// ===== Top win =====
 socket.on("top_wins", data=>{
     const box = document.getElementById("top_win_box");
     if(data.length === 0){
