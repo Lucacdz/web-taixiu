@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Web Tài Xỉu Emoji</title>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>🎲 Web Tài Xỉu Realtime</h1>
+
+<div id="auth">
+    <h3>Đăng ký</h3>
+    <input id="reg_user" placeholder="Username">
+    <input id="reg_pass" type="password" placeholder="Password">
+    <button onclick="register()">Đăng ký</button>
+
+    <h3>Đăng nhập</h3>
+    <input id="login_user" placeholder="Username">
+    <input id="login_pass" type="password" placeholder="Password">
+    <button onclick="login()">Đăng nhập</button>
+</div>
+
+<div id="game" style="display:none;">
+    <div>Tiền: <span id="money"></span> xu</div>
+
+    <h3>Chọn mức cược:</h3>
+    <select id="bet_amount">
+        <option value="5000">5k</option>
+        <option value="10000">10k</option>
+        <option value="50000">50k</option>
+        <option value="100000">100k</option>
+        <option value="500000">500k</option>
+    </select>
+
+    <button onclick="placeBet('Tài')">Đặt Tài</button>
+    <button onclick="placeBet('Xỉu')">Đặt Xỉu</button>
+    <label><input type="checkbox" id="auto_bet"> Auto mở bát</label>
+
+    <h3>Kết quả:</h3>
+    <div id="dice_area"></div>
+    <div id="outcome"></div>
+
+    <h3>Chat realtime:</h3>
+    <div id="chat_box" style="border:1px solid white; height:150px; overflow:auto;"></div>
+    <input id="chat_input" placeholder="Nhập tin nhắn">
+    <button onclick="sendChat()">Gửi</button>
+</div>
+
+<script>
+const socket = io();
+let username = "";
+
+function register(){
+    fetch("/register",{
+        method:"POST",
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ username: document.getElementById("reg_user").value,
+                               password: document.getElementById("reg_pass").value })
+    }).then(r=>r.json()).then(r=>alert(r.msg));
+}
+
+function login(){
+    fetch("/login",{
+        method:"POST",
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ username:document.getElementById("login_user").value,
+                              password:document.getElementById("login_pass").value })
+    }).then(r=>r.json()).then(r=>{
+        if(r.success){
+            username = document.getElementById("login_user").value;
+            document.getElementById("auth").style.display="none";
+            document.getElementById("game").style.display="block";
+            document.getElementById("money").innerText = r.money;
+            socket.emit("player_login",{username});
+        } else alert(r.msg);
+    });
+}
+
+function placeBet(type){
+    let amount = parseInt(document.getElementById("bet_amount").value);
+    let auto = document.getElementById("auto_bet").checked;
+    socket.emit("bet",{type, amount, auto});
+}
+
+socket.on("update_player", player => {
+    document.getElementById("money").innerText = player.money;
+});
+
+socket.on("bet_update", data=>{
+    console.log("Cược hiện tại:", data);
+});
+
+// Hiển thị kết quả với emoji
+socket.on("round_result", data=>{
+    const dice_area = document.getElementById("dice_area");
+    const outcome = document.getElementById("outcome");
+    dice_area.innerHTML = "";
+    const diceEmoji = ["","⚀","⚁","⚂","⚃","⚄","⚅"];
+    let i=0;
+    function showNext(){
+        if(i>=data.result.length){
+            outcome.innerText = `Kết quả: ${data.outcome}`;
+            if(data.players[socket.id]) document.getElementById("money").innerText = data.players[socket.id].money;
+            return;
+        }
+        let span = document.createElement("span");
+        span.style.fontSize = "50px";
+        span.style.margin = "5px";
+        span.innerText = diceEmoji[data.result[i]];
+        dice_area.appendChild(span);
+        i++;
+        setTimeout(showNext, 1000);
+    }
+    showNext();
+});
+
+// Chat
+function sendChat(){
+    let msg = document.getElementById("chat_input").value;
+    socket.emit("chat",msg);
+    document.getElementById("chat_input").value="";
+}
+
+socket.on("chat_history", history=>{
+    const box = document.getElementById("chat_box");
+    box.innerHTML = history.map(c=>`<b>${c.username}:</b> ${c.msg}`).join("<br>");
+    box.scrollTop = box.scrollHeight;
+});
+</script>
+
+</body>
+</html>

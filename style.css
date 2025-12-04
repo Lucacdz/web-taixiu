@@ -1,0 +1,4 @@
+body { background:#111; color:white; font-family:Arial; text-align:center; }
+button { margin:5px; padding:8px 15px; border-radius:5px; cursor:pointer; }
+input, select { margin:3px; padding:5px; border-radius:5px; }
+span { display:inline-block; }
