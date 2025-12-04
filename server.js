@@ -19,6 +19,10 @@ let currentBets = {};
 let players = {};
 let chatHistory = [];
 
+const ROUND_TIME = 30;
+let currentTime = ROUND_TIME;
+
+// ===== Routes =====
 app.post("/register", (req,res)=>{
     const { username, password } = req.body;
     if(users[username]) return res.json({ success:false, msg:"Tên đã tồn tại" });
@@ -34,25 +38,34 @@ app.post("/login", (req,res)=>{
     return res.json({ success:true, msg:"Đăng nhập thành công", money: users[username].money });
 });
 
+// ===== Socket.io =====
 io.on("connection", socket=>{
     console.log("Player connected:", socket.id);
 
     socket.on("player_login", data=>{
-        players[socket.id] = { username: data.username, money: users[data.username].money, auto:false };
+        players[socket.id] = { username: data.username, money: users[data.username].money, auto:false, hasBet:false };
         socket.emit("update_player", players[socket.id]);
-        io.emit("chat_history", chatHistory);
+        socket.emit("chat_history", chatHistory.slice(-50));
     });
 
     socket.on("bet", data=>{
         if(!players[socket.id]) return;
+        if(players[socket.id].hasBet){
+            socket.emit("bet_error","Bạn đã đặt cược cho vòng này");
+            return;
+        }
+
         let amount = parseInt(data.amount);
         if(players[socket.id].money < amount){
             socket.emit("bet_error","Không đủ tiền");
             return;
         }
+
         currentBets[socket.id] = { type:data.type, amount };
         players[socket.id].auto = data.auto || false;
+        players[socket.id].hasBet = true;
         io.emit("bet_update", currentBets);
+        socket.emit("bet_locked"); // khoá nút lựa chọn
     });
 
     socket.on("chat", msg=>{
@@ -69,31 +82,39 @@ io.on("connection", socket=>{
     });
 });
 
+// ===== Countdown & Auto roll dice =====
 setInterval(()=>{
-    if(Object.keys(currentBets).length===0) return;
+    if(Object.keys(players).length===0) return;
 
-    function rollDice(){ return [
-        Math.floor(Math.random()*6)+1,
-        Math.floor(Math.random()*6)+1,
-        Math.floor(Math.random()*6)+1
-    ];}
+    currentTime--;
+    io.emit("timer_update", currentTime);
 
-    let result = rollDice();
-    let sum = result.reduce((a,b)=>a+b,0);
-    let outcome = sum>=11?"Tài":"Xỉu";
+    if(currentTime <= 0){
+        function rollDice(){ return [
+            Math.floor(Math.random()*6)+1,
+            Math.floor(Math.random()*6)+1,
+            Math.floor(Math.random()*6)+1
+        ];}
 
-    for(let id in currentBets){
-        if(!players[id]) continue;
-        let bet = currentBets[id];
-        let player = players[id];
-        if(bet.type === outcome) player.money += bet.amount;
-        else player.money -= bet.amount;
-        users[player.username].money = player.money;
+        let result = rollDice();
+        let sum = result.reduce((a,b)=>a+b,0);
+        let outcome = sum>=11?"Tài":"Xỉu";
+
+        for(let id in currentBets){
+            if(!players[id]) continue;
+            let bet = currentBets[id];
+            let player = players[id];
+            if(bet.type === outcome) player.money += bet.amount;
+            else player.money -= bet.amount;
+            users[player.username].money = player.money;
+            player.hasBet = false; // mở khoá cho vòng tiếp theo
+        }
+        saveUsers();
+
+        io.emit("round_result", { result, outcome, bets:currentBets, players });
+        currentBets = {};
+        currentTime = ROUND_TIME;
     }
-    saveUsers();
-
-    io.emit("round_result", { result, outcome, bets:currentBets, players });
-    currentBets = {};
-}, 30000);
+}, 1000);
 
 http.listen(PORT, ()=>console.log(`Server chạy http://localhost:${PORT}`));
