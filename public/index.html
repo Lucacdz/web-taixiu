@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Web Tài Xỉu Emoji</title>
+<title>Web Tài Xỉu Lamcubé</title>
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -41,6 +41,12 @@
     <h3>Kết quả:</h3>
     <div id="dice_area"></div>
     <div id="outcome"></div>
+
+    <h3>Lịch sử 10 vòng gần nhất:</h3>
+    <div id="history_box" style="border:1px solid white; padding:5px; height:150px; overflow:auto;"></div>
+
+    <h3>Top người thắng tiền gần nhất:</h3>
+    <div id="top_win_box" style="border:1px solid white; padding:5px; height:150px; overflow:auto;"></div>
 
     <h3>Chat realtime:</h3>
     <div id="chat_box" style="border:1px solid white; height:150px; overflow:auto;"></div>
@@ -97,6 +103,12 @@ socket.on("bet_locked", ()=>{
     document.getElementById("bet_xiu").disabled = true;
 });
 
+socket.on("bet_error", msg=>{
+    alert(msg);
+});
+
+const diceEmoji = ["","⚀","⚁","⚂","⚃","⚄","⚅"];
+
 socket.on("round_result", data=>{
     document.getElementById("bet_tai").disabled = false;
     document.getElementById("bet_xiu").disabled = false;
@@ -104,7 +116,6 @@ socket.on("round_result", data=>{
     const dice_area = document.getElementById("dice_area");
     const outcome = document.getElementById("outcome");
     dice_area.innerHTML = "";
-    const diceEmoji = ["","⚀","⚁","⚂","⚃","⚄","⚅"];
     let i=0;
     function showNext(){
         if(i>=data.result.length){
@@ -124,8 +135,21 @@ socket.on("round_result", data=>{
 });
 
 // Timer
-socket.on("timer_update", time=>{
-    document.getElementById("timer").innerText = time;
+socket.on("timer_update", (time, inBreak)=>{
+    const timerEl = document.getElementById("timer");
+    timerEl.innerText = time + " giây";
+    if(inBreak){
+        timerEl.innerText += " (Đang nghỉ giữa vòng)";
+        document.getElementById("bet_tai").disabled = true;
+        document.getElementById("bet_xiu").disabled = true;
+    } else {
+        document.getElementById("bet_tai").disabled = false;
+        document.getElementById("bet_xiu").disabled = false;
+    }
+});
+
+socket.on("new_round", ()=>{
+    alert("Vòng mới bắt đầu! Chuẩn bị đặt cược!");
 });
 
 // Chat
@@ -139,6 +163,29 @@ function sendChat(){
 socket.on("chat_history", history=>{
     const box = document.getElementById("chat_box");
     box.innerHTML = history.map(c=>`<b>${c.username}:</b> ${c.msg}`).join("<br>");
+    box.scrollTop = box.scrollHeight;
+});
+
+// Lịch sử vòng
+socket.on("round_history", history=>{
+    const box = document.getElementById("history_box");
+    box.innerHTML = history.map((r,i)=>{
+        const diceStr = r.result.map(d=>diceEmoji[d]).join(" ");
+        return `<b>Vòng ${i+1}:</b> ${diceStr} → ${r.outcome}`;
+    }).join("<br>");
+    box.scrollTop = box.scrollHeight;
+});
+
+// Top win
+socket.on("top_wins", data=>{
+    const box = document.getElementById("top_win_box");
+    if(data.length === 0){
+        box.innerHTML = "Chưa có người thắng vòng nào";
+        return;
+    }
+    box.innerHTML = data.map((r,i)=>{
+        return `<b>${i+1}. ${r.username}</b> +${r.win} xu`;
+    }).join("<br>");
     box.scrollTop = box.scrollHeight;
 });
 </script>
