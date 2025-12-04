@@ -7,9 +7,6 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- Nhạc nền -->
-<audio src="https://files.catbox.moe/sbvh44.mp3" autoplay loop></audio>
-
 <h1>🎲 Web Tài Xỉu Realtime</h1>
 
 <div id="auth">
@@ -45,23 +42,34 @@
     <div id="dice_area"></div>
     <div id="outcome"></div>
 
-    <h3>Lịch sử 10 vòng gần nhất:</h3>
-    <div id="history_box" style="border:1px solid white; padding:5px; height:150px; overflow:auto;"></div>
-
-    <h3>Top người thắng tiền gần nhất:</h3>
-    <div id="top_win_box" style="border:1px solid white; padding:5px; height:150px; overflow:auto;"></div>
-
     <h3>Chat realtime:</h3>
     <div id="chat_box" style="border:1px solid white; height:150px; overflow:auto;"></div>
     <input id="chat_input" placeholder="Nhập tin nhắn">
     <button onclick="sendChat()">Gửi</button>
+
+    <!-- ===== Setting ===== -->
+    <div id="settings" style="border:1px solid white; padding:10px; margin-top:10px;">
+      <h3>⚙ Cài đặt</h3>
+      <button onclick="toggleMusic()">Bật/Tắt nhạc</button>
+      <div style="margin-top:5px;">
+        <button onclick="showTab('history')">📜 Lịch sử 10 vòng</button>
+        <button onclick="showTab('top')">🏆 Top người thắng</button>
+      </div>
+      <div id="tab_history" style="display:none; border:1px solid gray; padding:5px; height:150px; overflow:auto; margin-top:5px;"></div>
+      <div id="tab_top" style="display:none; border:1px solid gray; padding:5px; height:150px; overflow:auto; margin-top:5px;"></div>
+    </div>
 </div>
+
+<!-- Audio -->
+<audio id="bg_music" loop autoplay>
+  <source src="https://files.catbox.moe/sbvh44.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 const socket = io();
 let username = "";
 
-// ===== Đăng ký & đăng nhập =====
+// ===== Register/Login =====
 function register(){
     fetch("/register",{
         method:"POST",
@@ -88,15 +96,36 @@ function login(){
     });
 }
 
-// ===== Đặt cược =====
+// ===== Place Bet =====
 function placeBet(type){
     let amount = parseInt(document.getElementById("bet_amount").value);
     let auto = document.getElementById("auto_bet").checked;
     socket.emit("bet",{type, amount, auto});
 }
 
+// ===== Music & Setting =====
+const music = document.getElementById("bg_music");
+
+function toggleMusic(){
+    if(music.paused){
+        music.play();
+    } else {
+        music.pause();
+    }
+}
+
+function showTab(tab){
+    document.getElementById("tab_history").style.display = tab==="history"?"block":"none";
+    document.getElementById("tab_top").style.display = tab==="top"?"block":"none";
+}
+
+// ===== Socket Events =====
 socket.on("update_player", player => {
     document.getElementById("money").innerText = player.money;
+});
+
+socket.on("bet_update", data=>{
+    console.log("Cược hiện tại:", data);
 });
 
 socket.on("bet_locked", ()=>{
@@ -108,7 +137,6 @@ socket.on("bet_error", msg=>{
     alert(msg);
 });
 
-// ===== Dice emoji & kết quả =====
 const diceEmoji = ["","⚀","⚁","⚂","⚃","⚄","⚅"];
 
 socket.on("round_result", data=>{
@@ -136,7 +164,6 @@ socket.on("round_result", data=>{
     showNext();
 });
 
-// ===== Timer =====
 socket.on("timer_update", (time, inBreak)=>{
     const timerEl = document.getElementById("timer");
     timerEl.innerText = time + " giây";
@@ -154,7 +181,7 @@ socket.on("new_round", ()=>{
     alert("Vòng mới bắt đầu! Chuẩn bị đặt cược!");
 });
 
-// ===== Chat realtime =====
+// Chat
 function sendChat(){
     let msg = document.getElementById("chat_input").value;
     if(msg.trim() === "") return;
@@ -168,9 +195,9 @@ socket.on("chat_history", history=>{
     box.scrollTop = box.scrollHeight;
 });
 
-// ===== Lịch sử vòng =====
+// Update lịch sử và top
 socket.on("round_history", history=>{
-    const box = document.getElementById("history_box");
+    const box = document.getElementById("tab_history");
     box.innerHTML = history.map((r,i)=>{
         const diceStr = r.result.map(d=>diceEmoji[d]).join(" ");
         return `<b>Vòng ${i+1}:</b> ${diceStr} → ${r.outcome}`;
@@ -178,9 +205,8 @@ socket.on("round_history", history=>{
     box.scrollTop = box.scrollHeight;
 });
 
-// ===== Top win =====
 socket.on("top_wins", data=>{
-    const box = document.getElementById("top_win_box");
+    const box = document.getElementById("tab_top");
     if(data.length === 0){
         box.innerHTML = "Chưa có người thắng vòng nào";
         return;
