@@ -11,7 +11,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // ===== MongoDB =====
-const uri = "mongodb+srv://<username>:<password>@cluster0.mongodb.net/taixiu?retryWrites=true&w=majority";
+const uri = "mongodb+srv://<Ngduyanh>:<cuto>@cluster0.mongodb.net/taixiu?retryWrites=true&w=majority";
 const client = new MongoClient(uri);
 let usersCollection;
 
