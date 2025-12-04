@@ -4,10 +4,157 @@
 <meta charset="UTF-8">
 <title>Web Tài Xỉu Lamcubé</title>
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-<link rel="stylesheet" href="style.css">
+<style>
+body { 
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: white; 
+    font-family: Arial, sans-serif; 
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+}
+button { 
+    margin: 5px; 
+    padding: 10px 20px; 
+    border-radius: 8px; 
+    cursor: pointer;
+    border: none;
+    font-weight: bold;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+input, select { 
+    margin: 8px; 
+    padding: 10px; 
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+span { display: inline-block; }
+
+#auth {
+    max-width: 400px;
+    margin: 50px auto;
+    background: rgba(0,0,0,0.6);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,200,255,0.3);
+}
+
+#game {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(0,0,0,0.7);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 0 25px rgba(255,100,0,0.3);
+}
+
+#dice_area {
+    margin: 20px 0;
+    font-size: 60px;
+    min-height: 80px;
+}
+
+#bet_tai {
+    background: linear-gradient(45deg, #00b09b, #96c93d);
+    color: white;
+}
+
+#bet_xiu {
+    background: linear-gradient(45deg, #ff416c, #ff4b2b);
+    color: white;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255,255,255,0.2);
+}
+
+button:disabled {
+    background: #666;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+#music-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 15px;
+    border-radius: 12px;
+    z-index: 1000;
+    border: 2px solid #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+.music-btn {
+    background: transparent;
+    border: 2px solid white;
+    margin: 5px;
+    padding: 10px;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 20px;
+    color: white;
+    cursor: pointer;
+}
+
+.music-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.volume-slider {
+    width: 120px;
+    margin: 10px;
+}
+
+#timer {
+    font-size: 28px;
+    font-weight: bold;
+    color: #ffcc00;
+    text-shadow: 0 0 10px rgba(255,204,0,0.5);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+#chat_box, #history_box, #top_win_box {
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    text-align: left;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+h1 {
+    color: #00ffff;
+    text-shadow: 0 0 15px rgba(0,255,255,0.7);
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+h3 {
+    color: #ff9900;
+    border-bottom: 2px solid #ff9900;
+    padding-bottom: 5px;
+    display: inline-block;
+    margin-top: 25px;
+}
+</style>
 </head>
 <body>
-<h1>🎲 Web Tài Xỉu Realtime</h1>
+<h1>🎲 Web Tài Xỉu Realtime 🎵</h1>
 
 <div id="auth">
     <h3>Đăng ký</h3>
@@ -22,71 +169,228 @@
 </div>
 
 <div id="game" style="display:none;">
-    <div>Tiền: <span id="money"></span> xu</div>
-    <div>Thời gian đặt cược: <span id="timer">30</span> giây</div>
+    <div style="font-size:24px; margin-bottom:15px;">
+        👛 Tiền: <span id="money" style="color:#00ff00; font-weight:bold;"></span> xu
+    </div>
+    
+    <div style="font-size:20px; margin-bottom:20px;">
+        ⏳ Thời gian: <span id="timer">30</span> giây
+    </div>
 
     <h3>Chọn mức cược:</h3>
-    <select id="bet_amount">
-        <option value="5000">5k</option>
-        <option value="10000">10k</option>
-        <option value="50000">50k</option>
-        <option value="100000">100k</option>
-        <option value="500000">500k</option>
+    <select id="bet_amount" style="padding:12px; font-size:16px;">
+        <option value="5000">5.000 xu</option>
+        <option value="10000">10.000 xu</option>
+        <option value="50000">50.000 xu</option>
+        <option value="100000">100.000 xu</option>
+        <option value="500000">500.000 xu</option>
     </select>
 
-    <button id="bet_tai" onclick="placeBet('Tài')">Đặt Tài</button>
-    <button id="bet_xiu" onclick="placeBet('Xỉu')">Đặt Xỉu</button>
-    <label><input type="checkbox" id="auto_bet"> Auto mở bát</label>
+    <div style="margin:20px 0;">
+        <button id="bet_tai" onclick="placeBet('Tài')" style="padding:15px 30px; font-size:18px;">🎲 ĐẶT TÀI</button>
+        <button id="bet_xiu" onclick="placeBet('Xỉu')" style="padding:15px 30px; font-size:18px;">🎯 ĐẶT XỈU</button>
+    </div>
+    
+    <div style="margin:15px 0;">
+        <label style="font-size:16px;">
+            <input type="checkbox" id="auto_bet" style="transform:scale(1.3); margin-right:8px;">
+            🔄 Auto đặt cược
+        </label>
+    </div>
 
-    <h3>Kết quả:</h3>
+    <h3>Kết quả xúc xắc:</h3>
     <div id="dice_area"></div>
-    <div id="outcome"></div>
+    <div id="outcome" style="font-size:22px; font-weight:bold; margin:15px 0;"></div>
 
-    <h3>Lịch sử 10 vòng gần nhất:</h3>
-    <div id="history_box" style="border:1px solid white; padding:5px; height:150px; overflow:auto;"></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin:30px 0;">
+        <div>
+            <h3>📜 Lịch sử 10 vòng</h3>
+            <div id="history_box" style="height:180px;"></div>
+        </div>
+        <div>
+            <h3>🏆 Top người thắng</h3>
+            <div id="top_win_box" style="height:180px;"></div>
+        </div>
+    </div>
 
-    <h3>Top người thắng tiền gần nhất:</h3>
-    <div id="top_win_box" style="border:1px solid white; padding:5px; height:150px; overflow:auto;"></div>
-
-    <h3>Chat realtime:</h3>
-    <div id="chat_box" style="border:1px solid white; height:150px; overflow:auto;"></div>
-    <input id="chat_input" placeholder="Nhập tin nhắn">
-    <button onclick="sendChat()">Gửi</button>
+    <h3>💬 Chat trực tuyến</h3>
+    <div id="chat_box" style="height:150px;"></div>
+    <input id="chat_input" placeholder="Nhập tin nhắn..." style="width:70%; padding:10px; font-size:16px;">
+    <button onclick="sendChat()" style="padding:10px 20px; background:#007bff;">Gửi</button>
 </div>
+
+<!-- Điều khiển nhạc -->
+<div id="music-controls" style="display:none;">
+    <div style="margin-bottom:10px; color:#00ffff; font-weight:bold;">🎵 Điều khiển nhạc</div>
+    <button class="music-btn" onclick="toggleMusic()" id="music-toggle">⏸️</button>
+    <button class="music-btn" onclick="prevTrack()">⏮️</button>
+    <button class="music-btn" onclick="nextTrack()">⏭️</button>
+    <br>
+    <input type="range" min="0" max="100" value="50" class="volume-slider" id="volume-slider" oninput="changeVolume(this.value)">
+    <div style="margin-top:10px; font-size:14px;" id="now-playing">Nhạc nền game</div>
+</div>
+
+<!-- Audio Elements -->
+<audio id="background-music" loop>
+    <source src="https://assets.mixkit.co/music/preview/mixkit-game-show-suspense-waiting-667.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="dice-sound">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-dice-roll-1994.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="win-sound">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="lose-sound">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="bet-sound">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="chat-sound">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-happy-widget-notification-962.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 const socket = io();
 let username = "";
+let currentTrack = 0;
+let isMusicPlaying = false;
+const musicTracks = [
+    "https://assets.mixkit.co/music/preview/mixkit-game-show-suspense-waiting-667.mp3",
+    "https://assets.mixkit.co/music/preview/mixkit-poker-ace-1049.mp3",
+    "https://assets.mixkit.co/music/preview/mixkit-arcade-game-intro-229.mp3"
+];
+
+// Khởi tạo âm thanh
+const bgMusic = document.getElementById('background-music');
+const diceSound = document.getElementById('dice-sound');
+const winSound = document.getElementById('win-sound');
+const loseSound = document.getElementById('lose-sound');
+const betSound = document.getElementById('bet-sound');
+const chatSound = document.getElementById('chat-sound');
+
+// Điều khiển âm lượng mặc định
+bgMusic.volume = 0.3;
+diceSound.volume = 0.5;
+winSound.volume = 0.6;
+loseSound.volume = 0.4;
+betSound.volume = 0.5;
+chatSound.volume = 0.4;
+
+function toggleMusic() {
+    const toggleBtn = document.getElementById('music-toggle');
+    if (isMusicPlaying) {
+        bgMusic.pause();
+        toggleBtn.innerHTML = "▶";
+    } else {
+        bgMusic.play();
+        toggleBtn.innerHTML = "❚❚️";
+    }
+    isMusicPlaying = !isMusicPlaying;
+}
+
+function prevTrack() {
+    currentTrack = (currentTrack - 1 + musicTracks.length) % musicTracks.length;
+    loadAndPlayTrack();
+}
+
+function nextTrack() {
+    currentTrack = (currentTrack + 1) % musicTracks.length;
+    loadAndPlayTrack();
+}
+
+function loadAndPlayTrack() {
+    bgMusic.src = musicTracks[currentTrack];
+    if (isMusicPlaying) {
+        bgMusic.play();
+    }
+    document.getElementById('now-playing').textContent = `Track ${currentTrack + 1}/${musicTracks.length}`;
+}
+
+function changeVolume(value) {
+    const volume = value / 100;
+    bgMusic.volume = volume;
+    diceSound.volume = volume;
+    winSound.volume = volume;
+    loseSound.volume = volume;
+    betSound.volume = volume;
+    chatSound.volume = volume;
+}
+
+// Hiển thị điều khiển nhạc khi vào game
+function showMusicControls() {
+    document.getElementById('music-controls').style.display = 'block';
+}
+
+// Tự động phát nhạc khi vào game
+document.addEventListener('DOMContentLoaded', function() {
+    // Tự động phát nhạc nền sau 1 giây
+    setTimeout(() => {
+        bgMusic.play().then(() => {
+            isMusicPlaying = true;
+            document.getElementById('music-toggle').innerHTML = "⏸️";
+        }).catch(e => {
+            console.log("Autoplay blocked:", e);
+        });
+    }, 1000);
+});
 
 function register(){
     fetch("/register",{
         method:"POST",
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ username: document.getElementById("reg_user").value,
-                               password: document.getElementById("reg_pass").value })
-    }).then(r=>r.json()).then(r=>alert(r.msg));
+        body: JSON.stringify({ 
+            username: document.getElementById("reg_user").value,
+            password: document.getElementById("reg_pass").value 
+        })
+    }).then(r=>r.json()).then(r=>{
+        alert(r.msg);
+        if(r.success){
+            document.getElementById("reg_user").value = "";
+            document.getElementById("reg_pass").value = "";
+        }
+    });
 }
 
 function login(){
+    const user = document.getElementById("login_user").value;
+    const pass = document.getElementById("login_pass").value;
+    
     fetch("/login",{
         method:"POST",
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ username:document.getElementById("login_user").value,
-                              password:document.getElementById("login_pass").value })
+        body:JSON.stringify({ 
+            username: user,
+            password: pass 
+        })
     }).then(r=>r.json()).then(r=>{
         if(r.success){
-            username = document.getElementById("login_user").value;
+            username = user;
             document.getElementById("auth").style.display="none";
             document.getElementById("game").style.display="block";
             document.getElementById("money").innerText = r.money;
             socket.emit("player_login",{username});
-        } else alert(r.msg);
+            showMusicControls();
+            betSound.play();
+        } else {
+            alert(r.msg);
+        }
     });
 }
 
 function placeBet(type){
     let amount = parseInt(document.getElementById("bet_amount").value);
     let auto = document.getElementById("auto_bet").checked;
+    
+    // Phát âm thanh đặt cược
+    betSound.currentTime = 0;
+    betSound.play();
+    
     socket.emit("bet",{type, amount, auto});
 }
 
@@ -105,6 +409,8 @@ socket.on("bet_locked", ()=>{
 
 socket.on("bet_error", msg=>{
     alert(msg);
+    loseSound.currentTime = 0;
+    loseSound.play();
 });
 
 const diceEmoji = ["","⚀","⚁","⚂","⚃","⚄","⚅"];
@@ -116,16 +422,35 @@ socket.on("round_result", data=>{
     const dice_area = document.getElementById("dice_area");
     const outcome = document.getElementById("outcome");
     dice_area.innerHTML = "";
-    let i=0;
+    
+    let i = 0;
     function showNext(){
-        if(i>=data.result.length){
-            outcome.innerText = `Kết quả: ${data.outcome}`;
-            if(data.players[socket.id]) document.getElementById("money").innerText = data.players[socket.id].money;
+        if(i >= data.result.length){
+            outcome.innerText = `🎯 Kết quả: ${data.outcome}`;
+            
+            // Phát âm thanh thắng/thua
+            if(data.players[socket.id]) {
+                document.getElementById("money").innerText = data.players[socket.id].money;
+                const playerBet = currentBets[socket.id];
+                if(playerBet && playerBet.type === data.outcome) {
+                    winSound.currentTime = 0;
+                    winSound.play();
+                } else if(playerBet) {
+                    loseSound.currentTime = 0;
+                    loseSound.play();
+                }
+            }
             return;
         }
+        
+        // Phát âm thanh xúc xắc
+        diceSound.currentTime = 0;
+        diceSound.play();
+        
         let span = document.createElement("span");
-        span.style.fontSize = "50px";
-        span.style.margin = "5px";
+        span.style.fontSize = "70px";
+        span.style.margin = "10px";
+        span.style.animation = "roll 0.5s";
         span.innerText = diceEmoji[data.result[i]];
         dice_area.appendChild(span);
         i++;
@@ -134,22 +459,35 @@ socket.on("round_result", data=>{
     showNext();
 });
 
+// Thêm animation cho xúc xắc
+const style = document.createElement('style');
+style.textContent = `
+@keyframes roll {
+    0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+`;
+document.head.appendChild(style);
+
 // Timer
 socket.on("timer_update", (time, inBreak)=>{
     const timerEl = document.getElementById("timer");
-    timerEl.innerText = time + " giây";
+    timerEl.innerText = time;
     if(inBreak){
-        timerEl.innerText += " (Đang nghỉ giữa vòng)";
+        timerEl.style.color = "#ff6666";
         document.getElementById("bet_tai").disabled = true;
         document.getElementById("bet_xiu").disabled = true;
     } else {
+        timerEl.style.color = "#ffcc00";
         document.getElementById("bet_tai").disabled = false;
         document.getElementById("bet_xiu").disabled = false;
     }
 });
 
 socket.on("new_round", ()=>{
-    alert("Vòng mới bắt đầu! Chuẩn bị đặt cược!");
+    diceSound.currentTime = 0;
+    diceSound.play();
 });
 
 // Chat
@@ -157,12 +495,33 @@ function sendChat(){
     let msg = document.getElementById("chat_input").value;
     if(msg.trim() === "") return;
     socket.emit("chat",msg);
+    
+    // Phát âm thanh chat
+    chatSound.currentTime = 0;
+    chatSound.play();
+    
     document.getElementById("chat_input").value="";
 }
 
 socket.on("chat_history", history=>{
     const box = document.getElementById("chat_box");
-    box.innerHTML = history.map(c=>`<b>${c.username}:</b> ${c.msg}`).join("<br>");
+    box.innerHTML = history.map(c=>{
+        if(c.username === username) {
+            return `<div style="text-align:right; margin:5px 0;">
+                <span style="background:#007bff; padding:5px 10px; border-radius:10px; display:inline-block;">
+                    ${c.msg}
+                </span>
+                <br><small style="color:#aaa;">${c.username}</small>
+            </div>`;
+        } else {
+            return `<div style="margin:5px 0;">
+                <b style="color:#ffcc00;">${c.username}:</b> 
+                <span style="background:#333; padding:5px 10px; border-radius:10px; display:inline-block;">
+                    ${c.msg}
+                </span>
+            </div>`;
+        }
+    }).join("");
     box.scrollTop = box.scrollHeight;
 });
 
@@ -171,8 +530,13 @@ socket.on("round_history", history=>{
     const box = document.getElementById("history_box");
     box.innerHTML = history.map((r,i)=>{
         const diceStr = r.result.map(d=>diceEmoji[d]).join(" ");
-        return `<b>Vòng ${i+1}:</b> ${diceStr} → ${r.outcome}`;
-    }).join("<br>");
+        const color = r.outcome === "Tài" ? "#00ff00" : "#ff4444";
+        return `<div style="margin:5px 0; padding:5px; border-bottom:1px solid #444;">
+            <b style="color:#aaa;">Vòng ${i+1}:</b> 
+            <span style="font-size:24px;">${diceStr}</span> 
+            → <b style="color:${color};">${r.outcome}</b>
+        </div>`;
+    }).join("");
     box.scrollTop = box.scrollHeight;
 });
 
@@ -184,8 +548,13 @@ socket.on("top_wins", data=>{
         return;
     }
     box.innerHTML = data.map((r,i)=>{
-        return `<b>${i+1}. ${r.username}</b> +${r.win} xu`;
-    }).join("<br>");
+        const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "🏅";
+        return `<div style="margin:5px 0; padding:5px; background:rgba(255,255,255,0.05); border-radius:5px;">
+            <span style="font-size:20px;">${medal}</span>
+            <b style="color:#ffcc00;">${r.username}</b> 
+            <span style="color:#00ff00; float:right;">+${r.win} xu</span>
+        </div>`;
+    }).join("");
     box.scrollTop = box.scrollHeight;
 });
 </script>
